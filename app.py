@@ -1,6 +1,12 @@
+from flask import Flask, request, jsonify
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import db
+from flask_cors import CORS
+
+app = Flask(__name__)
+
+CORS(app)
 
 # Initialize Firebase
 cred = credentials.Certificate("smartgrid-70254-firebase-adminsdk-fbsvc-16987a2fa8.json")
@@ -48,18 +54,27 @@ def process_message(message):
     if state is None:
         return "Could not determine if you want to turn something on or off"
     
-    # Find which component is mentioned
-    found_section = None
-    found_component = None
-    
-    for section, items in components.items():
-        for keyword, component_name in items.items():
-            if keyword.lower() in message:
-                found_section = section
-                found_component = component_name
+    # Special conditions check
+    if 'streetlight' in message and 'techpark' in message:
+        found_section = 'Night_LEDs'
+        found_component = 'Streetlights techpark'
+    elif 'java' in message and 'streetlight' in message:
+        found_section = 'Night_LEDs'
+        found_component = 'Java streetlights'
+    else:
+        # Find which component is mentioned
+        found_section = None
+        found_component = None
+        
+        for section, items in components.items():
+            for keyword, component_name in items.items():
+                # Convert both the keyword and the message to lowercase for comparison
+                if keyword.lower() in message.lower():
+                    found_section = section
+                    found_component = component_name
+                    break
+            if found_component:
                 break
-        if found_component:
-            break
     
     if not found_component:
         return "Could not identify which component you want to control"
@@ -73,19 +88,35 @@ def process_message(message):
     except Exception as e:
         return f"Error occurred: {str(e)}"
 
-# Example usage
-def handle_user_message(user_message):
-    result = process_message(user_message)
-    print(result)
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
 
-gunicorn_app = app
-# Test the function
-if __name__ == "__main__":
-    while True:
-        user_input = input("Enter your command (or 'quit' to exit): ")
-        if user_input.lower() == 'quit':
-            break
-        handle_user_message(user_input)
+@app.route('/')
+def home():
+    return '''
+    <h1>SmartGrid Control System</h1>
+    <p>Send POST requests to /control with a JSON body containing a "message" field.</p>
+    '''
+
+@app.route('/control', methods=['POST'])
+def control():
+    if not request.is_json:
+        return jsonify({"error": "Request must be JSON"}), 400
+    
+    data = request.get_json()
+    if 'message' not in data:
+        return jsonify({"error": "Message field is required"}), 400
+    
+    result = process_message(data['message'])
+    return jsonify({"response": result})
+
+@app.route('/status', methods=['GET'])
+def get_status():
+    try:
+        ref = db.reference('/')
+        current_status = ref.get()
+        return jsonify(current_status)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True)
