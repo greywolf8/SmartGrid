@@ -1,32 +1,24 @@
 from flask import Flask, request, jsonify
 import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import db
+from firebase_admin import credentials, db
 from flask_cors import CORS
 import os
 import json
-import tempfile
 
 app = Flask(__name__)
 CORS(app)
 
+# Load Firebase credentials from an environment variable
+firebase_credentials = os.getenv("FIREBASE_CREDENTIALS")  # Set this in Render
+
+if not firebase_credentials:
+    raise ValueError("Firebase credentials are missing! Set the FIREBASE_CREDENTIALS environment variable.")
+
+# Parse JSON credentials
+cred_dict = json.loads(firebase_credentials)
+
 # Initialize Firebase
-firebase_credentials_path = "/etc/secrets/FIREBASE_CREDENTIALS"  # Default secret file path in Render
-
-if not os.path.exists(firebase_credentials_path):
-    raise ValueError("Firebase credentials file is missing. Make sure you added it as a secret file in Render.")
-
-# Load the JSON credentials from the file
-with open(firebase_credentials_path, "r") as f:
-    cred_dict = json.load(f)
-
-# Create a temporary file for Firebase credentials
-with tempfile.NamedTemporaryFile(delete=False, mode='w', suffix=".json") as temp_cred_file:
-    json.dump(cred_dict, temp_cred_file)
-    temp_cred_file.flush()  # Ensure data is written before Firebase reads it
-
-# Initialize Firebase with the temporary credential file
-cred = credentials.Certificate(temp_cred_file.name)
+cred = credentials.Certificate(cred_dict)
 
 if not firebase_admin._apps:  # Prevent re-initialization error
     firebase_admin.initialize_app(cred, {
