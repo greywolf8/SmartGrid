@@ -79,7 +79,9 @@ def handle_user_message(user_message):
     print(result)
 
 if __name__ != "__main__":
-    gunicorn_app = app
+    app.run(debug=True)
+
+gunicorn_app = app
 # Test the function
 if __name__ == "__main__":
     while True:
