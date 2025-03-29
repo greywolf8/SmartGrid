@@ -9,7 +9,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Initialize Firebase
-cred = credentials.Certificate("smartgrid-70254-firebase-adminsdk-fbsvc-16987a2fa8.json")
+cred = credentials.Certificate("smartgrid-70254-firebase-adminsdk-fbsvc-5e60ca8f0e.json")
 firebase_admin.initialize_app(cred, {
     'databaseURL': 'https://smartgrid-70254-default-rtdb.firebaseio.com/'
 })
