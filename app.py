@@ -78,8 +78,8 @@ def handle_user_message(user_message):
     result = process_message(user_message)
     print(result)
 
-if __name__ != "__main__":
-    app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
 
 gunicorn_app = app
 # Test the function
